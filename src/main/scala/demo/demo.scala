@@ -6,7 +6,12 @@ import math.{max, min}
 
 package object demo {
 
+  trait Shift
 
+  final case object Horizontal extends Shift
+
+  final case object Vertical extends Shift
+  final case object None extends Shift
 
   implicit class ProjectedExtentOps(val projectedExtent: ProjectedExtent) {
     def xmax: Double = {
@@ -26,14 +31,17 @@ package object demo {
     def ymin: Double = t._1.extent.ymin
 
     def ymax: Double = t._1.extent.ymax
-    def height: Double = t._1.extent.height
-    def width: Double = t._1.extent.width
 
-    def shortTile:Tile = t._2.convert(UShortCellType)
+    def rows: Int = t._2.rows
+
+    def cols: Int = t._2.cols
+
+    def shortTile: Tile = t._2.convert(UShortCellType)
 
     def avg(x: Double, y: Double): Double = (x + y) / 2
 
     def crs: CRS = t._1.crs
+
 
     def horizontalMerge(t2: (ProjectedExtent, Tile)): Array[(ProjectedExtent, Tile)] = {
       if (t.ymax == t2.ymax && t.ymin == t2.ymin) { // otherwise they're from different rows
@@ -44,9 +52,26 @@ package object demo {
           crs
         )
         if (t._2.size == t2._2.size) {
-          val arr = t.shortTile.crop(t._1.extent,new Extent(avg(t.xmin,t.xmax),t.ymin,t.xmax,t.ymax)).toArray() ++
-            t2.shortTile.crop(t2._1.extent,new Extent(avg(t2.xmin,t2.xmax),t2.ymin,t2.xmax,t2.ymax)).toArray()
-          return Array(t,(newExtent,IntRawArrayTile(arr,2,2).convert(UShortCellType)))
+          val arr = t.shortTile.crop(t._1.extent, new Extent(avg(t.xmin, t.xmax), t.ymin, t.xmax, t.ymax)).toArray() ++
+            t2.shortTile.crop(t2._1.extent, new Extent(avg(t2.xmin, t2.xmax), t2.ymin, t2.xmax, t2.ymax)).toArray()
+          return Array((newExtent, IntRawArrayTile(arr,t.cols,t.rows).convert(UShortCellType)))
+        }
+      }
+      Array(t)
+    }
+
+    def verticalMerge(t2: (ProjectedExtent, Tile)): Array[(ProjectedExtent, Tile)] = {
+      if (t.xmax == t2.xmax && t.xmin == t2.xmin) { // otherwise they're from different columns
+        val y1 = avg(t.ymin, t.ymax)
+        val y2 = avg(t2.ymin, t2.ymax)
+        val newExtent = ProjectedExtent(
+          new Extent(xmin, min(y1, y2), xmax, max(y1, y2)),
+          crs
+        )
+        if (t._2.size == t2._2.size) {
+          val arr = t.shortTile.crop(t._1.extent, new Extent(t.xmin, avg(t.ymin,t.ymax), t.xmax, t.ymax)).toArray() ++
+            t2.shortTile.crop(t2._1.extent, new Extent(t2.xmin, avg(t2.ymin,t2.ymax), t2.xmax, t2.ymax)).toArray()
+          return Array((newExtent, IntRawArrayTile(arr,t.cols,t.rows).convert(UShortCellType)))
         }
       }
       Array(t)
