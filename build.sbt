@@ -30,10 +30,10 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   "org.locationtech.geotrellis" %% "geotrellis-spark" % "2.3.1",
-  "org.apache.spark"      %% "spark-core"       % "2.2.0" ,
+  "org.apache.spark" %% "spark-core" % "2.2.0",
+  "org.apache.spark" %% "spark-mllib" % "2.2.0",
   "edu.ucar" % "netcdf" % "4.2.20",
-
-"org.scalatest"         %%  "scalatest"       % "2.2.0" % Test
+  "org.scalatest" %% "scalatest" % "2.2.0" % Test
 )
 
 // When creating fat jar, remote some files with
@@ -49,13 +49,14 @@ assemblyMergeStrategy in assembly := {
   case _ => MergeStrategy.first
 }
 
-initialCommands in console := """
- |import geotrellis.raster._
- |import geotrellis.vector._
- |import geotrellis.proj4._
- |import geotrellis.spark._
- |import geotrellis.spark.io._
- |import geotrellis.spark.io.hadoop._
- |import geotrellis.spark.tiling._
- |import geotrellis.spark.util._
- """.stripMargin
+initialCommands in console :=
+  """
+    |import geotrellis.raster._
+    |import geotrellis.vector._
+    |import geotrellis.proj4._
+    |import geotrellis.spark._
+    |import geotrellis.spark.io._
+    |import geotrellis.spark.io.hadoop._
+    |import geotrellis.spark.tiling._
+    |import geotrellis.spark.util._
+  """.stripMargin
