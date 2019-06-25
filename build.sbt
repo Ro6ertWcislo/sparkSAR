@@ -36,6 +36,8 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "2.2.0" % Test
 )
 
+unmanagedJars in Compile += file("opencv/build/bin/opencv-411.jar")
+
 // When creating fat jar, remote some files with
 // bad signatures and resolve conflicts by taking the first
 // versions of shared packaged types.
@@ -60,3 +62,5 @@ initialCommands in console :=
     |import geotrellis.spark.tiling._
     |import geotrellis.spark.util._
   """.stripMargin
+
+javaOptions in run += s"-Djava.library.path=.\\opencv\\build\\bin"
