@@ -52,6 +52,11 @@ object Main {
 
 
   def main(args: Array[String]): Unit = {
+    if (args.length != 1) {
+      print("Invalid number of arguments. Pass a URL to the GeoTIFF file (local or HDFS)")
+      System.exit(1)
+    }
+
     val conf = new org.apache.spark.SparkConf()
       .set("spark.executor.memory", "4g")
       .set("spark.driver.memory", "4g")
@@ -70,7 +75,7 @@ object Main {
     // musi być COG tiff inaczej outofmemory
     // gdal_translate ori.tiff out.tiff -co COMPRESS=LZW -co TILED=YES
 
-    val rdd = HadoopGeoTiffRDD.spatial("/home/robert/Downloads/tif2/measurement/test.tiff")
+    val rdd = HadoopGeoTiffRDD.spatial(args(0))
     println(rdd)
 
     // not enough memory to handle all possibilities at once so why not handle it in 3 distinct runs?
