@@ -8,9 +8,10 @@ import geotrellis.vector.ProjectedExtent
 import org.apache.spark.SparkContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.mllib.rdd.RDDFunctions._
-import org.opencv.core.{Core, CvType, Mat}
-
+import org.opencv.core.{Core, CvType, Mat, MatOfPoint, MatOfRect}
 import java.io.IOException
+
+import org.opencv.features2d.MSER
 
 object Main {
 
@@ -95,7 +96,10 @@ object Main {
           val cols = tile.cols
 
           val mat = new Mat()
-          mat.create(rows, cols, CvType.CV_16U)
+          mat.create(rows, cols, CvType.CV_8UC1)
+
+          val msers = new java.util.ArrayList[MatOfPoint]
+          val bboxes = new MatOfRect
 
           for (row <- 0 until rows) {
             for (col <- 0 until cols) {
@@ -103,7 +107,11 @@ object Main {
             }
           }
 
-          mat
+          val mser = MSER.create()
+          mser.detectRegions(mat, msers, bboxes)
+          println("mser: " + msers.size())
+
+          mat.release()
         }.count()
         println(tile)
     }
