@@ -1,6 +1,6 @@
 package demo
 
-import java.io.{File, IOException}
+import java.io.{BufferedWriter, File, FileWriter, IOException}
 
 import com.typesafe.config.Config
 import geotrellis.spark.io.hadoop._
@@ -11,8 +11,13 @@ import org.opencv.core._
 import org.opencv.features2d.MSER
 
 import scala.collection.JavaConverters._
+import net.liftweb.json.Serialization.write
+import com.typesafe.config.ConfigFactory
+import net.liftweb.json.DefaultFormats
+
 
 object Main {
+  implicit val formats = DefaultFormats
 
   type Coords = (Double, Double)
 
@@ -20,9 +25,9 @@ object Main {
 
 
 
-  import com.typesafe.config.ConfigFactory
   val config: Config = ConfigFactory.load("sar.conf")
   val shift: Shift = Shift.apply(config.getString("shift"))
+  val outputPath: String = config.getString("output")
   var square: Boolean = config.getBoolean("square") //return squares containing mser or just points made of average mser points
   var boudExtent: Extent = if(config.getBoolean("extent.limit")){
     new Extent(
@@ -107,7 +112,8 @@ object Main {
       case None =>
         rdd
     }
-    shiftedRDD
+
+    val foundMsers = shiftedRDD
       .filter {
         case (extent, tile) =>
           if (boudExtent != null)
@@ -159,10 +165,13 @@ object Main {
         mser.clear()
 
         result
-      }.flatMap(x => x.toList).collect().foreach {
-      case ex: Extent => println(ex)
-      case p: Point => println(p)
-    }
+      }.flatMap(x => x.toList).collect()
+
+
+    val file = new File(outputPath)
+    val bw = new BufferedWriter(new FileWriter(file))
+    bw.write(write(foundMsers))
+    bw.close()
 
   }
 
