@@ -91,7 +91,7 @@ object Main {
         }.collect()
       case None =>
 
-        val tile = rdd.map(_._2.asInstanceOf[UShortRawArrayTile]).map { tile:Tile =>
+        val mserSum = rdd.map(_._2.asInstanceOf[UShortRawArrayTile]).map { tile:Tile =>
           val rows = tile.rows
           val cols = tile.cols
 
@@ -109,11 +109,20 @@ object Main {
 
           val mser = MSER.create()
           mser.detectRegions(mat, msers, bboxes)
-          println("mser: " + msers.size())
+          val size = msers.size()
 
+          // anti-SIGSEGV stuff
           mat.release()
-        }.count()
-        println(tile)
+          bboxes.release()
+          for (i <- 0 until size) {
+            msers.get(i).release()
+          }
+          mser.clear()
+
+          println("mser: " + size)
+          size
+        }.reduce((a, b) => a + b)
+        println("MSER sum is " + mserSum)
     }
     println("\nMy watch has ended")
 
