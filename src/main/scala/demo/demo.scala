@@ -7,6 +7,15 @@ import math.{max, min}
 package object demo {
 
   trait Shift
+  object Shift{
+    def apply(s:String): Shift ={
+      s match {
+        case "None" => None
+        case "Horizontal" => Horizontal
+        case "Vertical" => Vertical
+      }
+    }
+  }
 
   final case object Horizontal extends Shift
 
