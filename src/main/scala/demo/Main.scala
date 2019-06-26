@@ -11,14 +11,10 @@ import org.opencv.core._
 import org.opencv.features2d.MSER
 
 import scala.collection.JavaConverters._
-import net.liftweb.json.Serialization.write
 import com.typesafe.config.ConfigFactory
-import net.liftweb.json.DefaultFormats
 
 
 object Main {
-  implicit val formats = DefaultFormats
-
   type Coords = (Double, Double)
 
   def helloSentence = "Hello GeoTrellis"
@@ -39,6 +35,8 @@ object Main {
   }
   else null
   val uri: String = config.getString("uri")
+  val tiffMinVal: Int = config.getInt("tiffMinVal")
+  val tiffMaxVal: Int = config.getInt("tiffMaxVal")
 
   @throws[IOException]
   def addDir(s: String): Unit = {
@@ -95,9 +93,6 @@ object Main {
     // gdal_translate ori.tiff out.tiff -co COMPRESS=LZW -co TILED=YES
 
     val rdd = HadoopGeoTiffRDD.spatial(uri)
-    println(rdd)
-
-
 
     // not enough memory to handle all possibilities at once so why not handle it in 3 distinct runs?
     val shiftedRDD = shift match {
@@ -133,15 +128,15 @@ object Main {
         // fill the mat with tile's values
         for (row <- 0 until rows) {
           for (col <- 0 until cols) {
-            mat.put(row, col, tile.get(col, row).asInstanceOf[Short])
+            val px = 256 * (tile.get(col, row) - tiffMinVal) / (tiffMaxVal - tiffMinVal)
+            mat.put(row, col, px.asInstanceOf[Short])
           }
         }
 
 
-        val mser = MSER.create()
+        val mser = MSER.create(10, 10, 200)
         mser.detectRegions(mat, msers, bboxes)
         val size = msers.size()
-
 
         val result = if (square) {
           msers.asScala.map { matOfPoint =>
@@ -165,18 +160,15 @@ object Main {
         mser.clear()
 
         result
-      }.flatMap(x => x.toList).collect()
+      }.flatMap(x => x.toList)
 
+    val csvLines = foundMsers.map {
+      case p: Point => p.x + "," + p.y
+      case _ => ""
+    }
 
-    val file = new File(outputPath)
-    val bw = new BufferedWriter(new FileWriter(file))
-    bw.write(write(foundMsers))
-    bw.close()
-
+    csvLines.saveAsTextFile(config.getString("output"))
   }
-
-  println("\nMy watch has ended")
-
 
   private def minMaxPoint(matOfPoint: MatOfPoint): Point = {
     val points = matOfPoint.toArray
@@ -203,7 +195,7 @@ object Main {
     tileExtent.xmin + (posInTile / cols) * tileExtent.width
 
   private def toRealCoordY(tileExtent: Extent, posInTile: Double, rows: Int) =
-    tileExtent.ymin + (posInTile / rows) * tileExtent.height
+    tileExtent.ymax - (posInTile / rows) * tileExtent.height
 
 
   private def toRealExtent(mserSquare: Extent, tileExtent: Extent, cols: Int, rows: Int): Extent = {
